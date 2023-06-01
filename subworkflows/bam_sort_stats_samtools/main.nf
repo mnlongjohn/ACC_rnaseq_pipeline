@@ -2,14 +2,14 @@
 // Sort, index BAM file and run samtools stats, flagstat and idxstats
 //
 
-include { SAMTOOLS_SORT      } from '../../../modules/nf-core/samtools/sort/main'
-include { SAMTOOLS_INDEX     } from '../../../modules/nf-core/samtools/index/main'
+include { SAMTOOLS_SORT      } from '../../modules/samtools/sort/main'
+include { SAMTOOLS_INDEX     } from '../../modules/samtools/index/main'
 include { BAM_STATS_SAMTOOLS } from '../bam_stats_samtools/main'
 
 workflow BAM_SORT_STATS_SAMTOOLS {
     take:
     ch_bam   // channel: [ val(meta), [ bam ] ]
-    ch_fasta // channel: [ fasta ]
+    ch_fasta // channel: [ val(meta), path(fasta) ]
 
     main:
 
