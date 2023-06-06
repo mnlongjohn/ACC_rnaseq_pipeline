@@ -117,6 +117,7 @@ workflow RNASEQ {
         }
         .set { ch_strand_fastq }
 
+    ch_strand_fastq.view()
 
     //
     // MODULE: use fastp for qc
