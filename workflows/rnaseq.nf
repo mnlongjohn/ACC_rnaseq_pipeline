@@ -74,14 +74,12 @@ workflow RNASEQ {
     // reference genome transcript fasta for salmon
     Channel
         .fromPath(params.genome_transcript, type: 'file', checkIfExists: true)
-        .ifEmpty { exit 1, "Cannot find any reference transcript fasta file: ${params.transcript_fasta}\n" }
-        .first()
+        .ifEmpty { exit 1, "Cannot find any reference transcript fasta file: ${params.genome_transcript}\n" }
         .set { ch_transcript_fasta }
     // reference genome gtf file for salmon
     Channel
         .fromPath(params.genome_gtf, type: 'file', checkIfExists: true)
-        .ifEmpty { exit 1, "Cannot find any reference gtf file: ${params.gtf}\n" }
-        .first()
+        .ifEmpty { exit 1, "Cannot find any reference gtf file: ${params.genome_gtf}\n" }
         .set { ch_genome_gtf }
     // indexed genome for salmon quant
     Channel
@@ -188,9 +186,9 @@ workflow RNASEQ {
     //
     // SUBWORKFLOW:
     //
-    BAM_SORT_STATS_SAMTOOLS (STAR_ALIGN.out.bam, genome_fasta)
+    BAM_SORT_STATS_SAMTOOLS (STAR_ALIGN.out.bam, ch_genome_fasta)
 
-    genome_fasta
+    ch_genome_fasta
         .map { it -> it[1] }
         .set{ picard_genome_fasta }
 
