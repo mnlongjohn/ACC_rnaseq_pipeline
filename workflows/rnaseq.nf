@@ -37,6 +37,7 @@ include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/custom/dumpsoftwarevers
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 include { INPUT_CHECK               } from '../subworkflows/input_check'
+include { FASTQ_SUBSAMPLE_FQ_SALMON } from '../subworkflows/fastq_subsample_fq_salmon/main'
 include { BAM_SORT_STATS_SAMTOOLS   } from '../subworkflows/bam_sort_stats_samtools/main'
 
 /*
@@ -70,7 +71,21 @@ workflow RNASEQ {
         .ifEmpty { exit 1, "Cannot find any reference fasta file: ${params.genome_fasta}\n" }
         .map { it -> tuple([id: it.simpleName], file(it)) }
         .first()
-        .set { genome_fasta }
+        .set { ch_genome_fasta }
+
+    // reference genome transcript fasta for salmon
+    Channel
+        .fromPath(params.transcript_fasta, type: 'file', checkIfExists: true)
+        .ifEmpty { exit 1, "Cannot find any reference transcript fasta file: ${params.transcript_fasta}\n" }
+        .first()
+        .set { ch_transcript_fasta }
+
+    // reference genome gtf file for salmon
+    Channel
+        .fromPath(params.gtf, type: 'file', checkIfExists: true)
+        .ifEmpty { exit 1, "Cannot find any reference gtf file: ${params.gtf}\n" }
+        .first()
+        .set { ch_gtf }
 
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
@@ -117,18 +132,42 @@ workflow RNASEQ {
         }
         .set { ch_strand_fastq }
 
-    ch_strand_fastq.view()
+    // change (meta, [fasta]) to just [fasta] for subworkflow
+    ch_genome_fasta
+        .map{ it -> it[1] }
+        .first()
+        .set{ ch_salmon_genome_fasta }
+
+    FASTQ_SUBSAMPLE_FQ_SALMON (
+        ch_strand_fastq.auto_strand,
+        ch_salmon_genome_fasta,
+        ch_transcript_fasta,
+        ch_gtf,
+        ch_salmon_index,
+        !params.salmon_index
+    )
+    ch_versions = ch_versions.mix(FASTQ_SUBSAMPLE_FQ_SALMON.out.versions)
+
+    FASTQ_SUBSAMPLE_FQ_SALMON
+        .out
+        .json_info
+        .join(ch_strand_fastq.auto_strand)
+        .map { meta, json, reads ->
+            return [ meta + [ strandedness: WorkflowRnaseq.getSalmonInferredStrandedness(json) ], reads ]
+        }
+        .mix(ch_strand_fastq.known_strand)
+        .set { ch_strand_inferred_fastq }
 
     //
     // MODULE: use fastp for qc
     //
-    FASTP (ch_strand_fastq, params.fastp_adapter_fasta, params.fastp_save_trimmed_fail, params.fastp_save_merged)
+    FASTP (ch_strand_inferred_fastq, params.fastp_adapter_fasta, params.fastp_save_trimmed_fail, params.fastp_save_merged)
     ch_versions = ch_versions.mix(FASTP.out.versions.first().ifEmpty(null))
 
     //
     // MODULE: use fastp for qc
     //
-    TRIMGALORE (ch_strand_fastq)
+    TRIMGALORE (ch_strand_fastq.auto_strand)
     ch_versions = ch_versions.mix(TRIMGALORE.out.versions.first().ifEmpty(null))
 
     //
