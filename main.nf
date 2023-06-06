@@ -33,7 +33,7 @@ nextflow.enable.dsl = 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { ACCRNASEQ } from './workflows/rnaseq'
+include { RNASEQ } from './workflows/rnaseq'
 
 //
 // WORKFLOW: Run main nf-core/rnaseq analysis pipeline
