@@ -75,14 +75,14 @@ workflow RNASEQ {
 
     // reference genome transcript fasta for salmon
     Channel
-        .fromPath(params.transcript_fasta, type: 'file', checkIfExists: true)
+        .fromPath(params.genome_transcript, type: 'file', checkIfExists: true)
         .ifEmpty { exit 1, "Cannot find any reference transcript fasta file: ${params.transcript_fasta}\n" }
         .first()
         .set { ch_transcript_fasta }
 
     // reference genome gtf file for salmon
     Channel
-        .fromPath(params.gtf, type: 'file', checkIfExists: true)
+        .fromPath(params.genome_gtf, type: 'file', checkIfExists: true)
         .ifEmpty { exit 1, "Cannot find any reference gtf file: ${params.gtf}\n" }
         .first()
         .set { ch_gtf }
