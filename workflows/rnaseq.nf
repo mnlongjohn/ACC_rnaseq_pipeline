@@ -4,67 +4,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// def valid_params = [
-//     aligners       : ['star'],
-//     trimmers       : ['trimgalore', 'fastp']
-// ]
-
-// def summary_params = NfcoreSchema.paramsSummaryMap(workflow, params)
-
-// // Validate input parameters
-// WorkflowRnaseq.initialise(params, log, valid_params)
-
-// // Check input path parameters to see if they exist
-// checkPathParamList = [
-//     params.input, params.multiqc_config,
-//     params.fasta, params.transcript_fasta, params.additional_fasta,
-//     params.gtf, params.gff, params.gene_bed,
-//     params.ribo_database_manifest, params.splicesites,
-//     params.star_index, params.hisat2_index, params.rsem_index, params.salmon_index
-// ]
-// for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
-
-// // Check mandatory parameters
-// if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
-
-// // Check rRNA databases for sortmerna
-// if (params.remove_ribo_rna) {
-//     ch_ribo_db = file(params.ribo_database_manifest, checkIfExists: true)
-//     if (ch_ribo_db.isEmpty()) {exit 1, "File provided with --ribo_database_manifest is empty: ${ch_ribo_db.getName()}!"}
-// }
-
-// // Check if file with list of fastas is provided when running BBSplit
-// if (!params.skip_bbsplit && !params.bbsplit_index && params.bbsplit_fasta_list) {
-//     ch_bbsplit_fasta_list = file(params.bbsplit_fasta_list, checkIfExists: true)
-//     if (ch_bbsplit_fasta_list.isEmpty()) {exit 1, "File provided with --bbsplit_fasta_list is empty: ${ch_bbsplit_fasta_list.getName()}!"}
-// }
-
-// // Check alignment parameters
-// def prepareToolIndices  = []
-// if (!params.skip_bbsplit)   { prepareToolIndices << 'bbsplit'             }
-// if (!params.skip_alignment) { prepareToolIndices << params.aligner        }
-// if (params.pseudo_aligner)  { prepareToolIndices << params.pseudo_aligner }
-
-// // Get RSeqC modules to run
-// def rseqc_modules = params.rseqc_modules ? params.rseqc_modules.split(',').collect{ it.trim().toLowerCase() } : []
-// if (params.bam_csi_index) {
-//     for (rseqc_module in ['read_distribution', 'inner_distance', 'tin']) {
-//         if (rseqc_modules.contains(rseqc_module)) {
-//             rseqc_modules.remove(rseqc_module)
-//         }
-//     }
-// }
-
-// // Stage dummy file to be used as an optional input where required
-// ch_dummy_file = file("$projectDir/assets/dummy_file.txt", checkIfExists: true)
-
-// // Check if an AWS iGenome has been provided to use the appropriate version of STAR
-// def is_aws_igenome = false
-// if (params.fasta && params.gtf) {
-//     if ((file(params.fasta).getName() - '.gz' == 'genome.fa') && (file(params.gtf).getName() - '.gz' == 'genes.gtf')) {
-//         is_aws_igenome = true
-//     }
-// }
+// add back later
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -72,49 +12,16 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-// ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-// ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
-// ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
-
-// // Header files for MultiQC
-// ch_pca_header_multiqc        = file("$projectDir/assets/multiqc/deseq2_pca_header.txt", checkIfExists: true)
-// ch_clustering_header_multiqc = file("$projectDir/assets/multiqc/deseq2_clustering_header.txt", checkIfExists: true)
-// ch_biotypes_header_multiqc   = file("$projectDir/assets/multiqc/biotypes_header.txt", checkIfExists: true)
+// add back later
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    IMPORT LOCAL MODULES/SUBWORKFLOWS
+    IMPORT MODULES/SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
 //
 // MODULE: Loaded from modules/local/
-//
-// include { BEDTOOLS_GENOMECOV                 } from '../modules/local/bedtools_genomecov'
-// include { DUPRADAR                           } from '../modules/local/dupradar'
-// include { MULTIQC                            } from '../modules/local/multiqc'
-// include { MULTIQC_CUSTOM_BIOTYPE             } from '../modules/local/multiqc_custom_biotype'
-// include { UMITOOLS_PREPAREFORRSEM as UMITOOLS_PREPAREFORSALMON } from '../modules/local/umitools_prepareforrsem.nf'
-
-//
-// SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
-//
-include { INPUT_CHECK    } from '../subworkflows/input_check'
-// include { PREPARE_GENOME } from '../subworkflows/prepare_genome'
-// include { ALIGN_STAR     } from '../subworkflows/local/align_star'
-// include { QUANTIFY_RSEM  } from '../subworkflows/local/quantify_rsem'
-// include { QUANTIFY_SALMON as QUANTIFY_STAR_SALMON } from '../subworkflows/local/quantify_salmon'
-// include { QUANTIFY_SALMON as QUANTIFY_SALMON      } from '../subworkflows/local/quantify_salmon'
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    IMPORT NF-CORE MODULES/SUBWORKFLOWS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-//
-// MODULE: Installed directly from nf-core/modules
 //
 include { CAT_FASTQ                   } from '../modules/cat/fastq/main'
 include { FASTP                       } from '../modules/fastp/main'
@@ -122,29 +29,13 @@ include { TRIMGALORE                  } from '../modules/trimgalore/main'
 include { FASTQC                      } from '../modules/fastqc/main'
 include { STAR_ALIGN                  } from '../modules/star/align/main'
 include { PICARD_MARKDUPLICATES       } from '../modules/picard/markduplicates/main'
-// include { BBMAP_BBSPLIT               } from '../modules/nf-core/bbmap/bbsplit/main'
-// include { SAMTOOLS_SORT               } from '../modules/nf-core/samtools/sort/main'
-// include { PRESEQ_LCEXTRAP             } from '../modules/nf-core/preseq/lcextrap/main'
-// // include { QUALIMAP_RNASEQ             } from '../modules/nf-core/qualimap/rnaseq/main'
-// // include { SORTMERNA                   } from '../modules/nf-core/sortmerna/main'
-// include { STRINGTIE_STRINGTIE         } from '../modules/nf-core/stringtie/stringtie/main'
-// include { SUBREAD_FEATURECOUNTS       } from '../modules/nf-core/subread/featurecounts/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/custom/dumpsoftwareversions/main'
 
 //
-// SUBWORKFLOW: Consisting entirely of nf-core/modules
+// SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-include { BAM_SORT_STATS_SAMTOOLS          } from '../subworkflows/nf-core/bam_sort_stats_samtools/main'
-// include { FASTQ_SUBSAMPLE_FQ_SALMON        } from '../subworkflows/nf-core/fastq_subsample_fq_salmon/main'
-// include { FASTQ_FASTQC_UMITOOLS_TRIMGALORE } from '../subworkflows/nf-core/fastq_fastqc_umitools_trimgalore/main'
-// include { FASTQ_FASTQC_UMITOOLS_FASTP      } from '../subworkflows/nf-core/fastq_fastqc_umitools_fastp/main'
-// include { FASTQ_ALIGN_HISAT2               } from '../subworkflows/nf-core/fastq_align_hisat2/main'
-// include { BAM_MARKDUPLICATES_PICARD        } from '../subworkflows/nf-core/bam_markduplicates_picard/main'
-// // include { BAM_RSEQC                        } from '../subworkflows/nf-core/bam_rseqc/main'
-// // include { BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS as BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS_GENOME        } from '../subworkflows/nf-core/bam_dedup_stats_samtools_umitools/main'
-// // include { BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS as BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS_TRANSCRIPTOME } from '../subworkflows/nf-core/bam_dedup_stats_samtools_umitools/main'
-// include { BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG as BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_FORWARD } from '../subworkflows/nf-core/bedgraph_bedclip_bedgraphtobigwig/main'
-// include { BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG as BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_REVERSE } from '../subworkflows/nf-core/bedgraph_bedclip_bedgraphtobigwig/main'
+include { INPUT_CHECK               } from '../subworkflows/input_check'
+include { BAM_SORT_STATS_SAMTOOLS   } from '../subworkflows/nf-core/bam_sort_stats_samtools/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -161,34 +52,6 @@ def pass_strand_check  = [:]
 workflow RNASEQ {
 
     ch_versions = Channel.empty()
-
-    // //
-    // // SUBWORKFLOW: Uncompress and prepare reference genome files
-    // //
-    // def biotype = params.gencode ? "gene_type" : params.featurecounts_group_type
-    // PREPARE_GENOME (
-    //     params.fasta,
-    //     params.gtf,
-    //     params.gff,
-    //     params.additional_fasta,
-    //     params.transcript_fasta,
-    //     params.gene_bed,
-    //     params.splicesites,
-    //     params.star_index,
-    //     params.gencode,
-    //     is_aws_igenome,
-    //     biotype,
-    //     prepareToolIndices
-    // )
-    // ch_versions = ch_versions.mix(PREPARE_GENOME.out.versions)
-
-    // // Check if contigs in genome fasta file > 512 Mbp
-    // if (!params.skip_alignment && !params.bam_csi_index) {
-    //     PREPARE_GENOME
-    //         .out
-    //         .fai
-    //         .map { WorkflowRnaseq.checkMaxContigSize(it, log) }
-    // }
 
     //
     // DEFINE: build genome channels

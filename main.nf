@@ -17,13 +17,7 @@ nextflow.enable.dsl = 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// params.fasta            = WorkflowMain.getGenomeAttribute(params, 'fasta')
-// params.transcript_fasta = WorkflowMain.getGenomeAttribute(params, 'transcript_fasta')
-// params.additional_fasta = WorkflowMain.getGenomeAttribute(params, 'additional_fasta')
-// params.gtf              = WorkflowMain.getGenomeAttribute(params, 'gtf')
-// params.gff              = WorkflowMain.getGenomeAttribute(params, 'gff')
-// params.gene_bed         = WorkflowMain.getGenomeAttribute(params, 'bed12')
-// params.star_index       = WorkflowMain.getGenomeAttribute(params, 'star')
+// add back later
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -31,7 +25,7 @@ nextflow.enable.dsl = 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// WorkflowMain.initialise(workflow, params, log)
+// add back later
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
