@@ -4,66 +4,67 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-def valid_params = [
-    aligners       : ['star'],
-    trimmers       : ['trimgalore', 'fastp']
+// def valid_params = [
+//     aligners       : ['star'],
+//     trimmers       : ['trimgalore', 'fastp']
+// ]
 
-def summary_params = NfcoreSchema.paramsSummaryMap(workflow, params)
+// def summary_params = NfcoreSchema.paramsSummaryMap(workflow, params)
 
-// Validate input parameters
-WorkflowRnaseq.initialise(params, log, valid_params)
+// // Validate input parameters
+// WorkflowRnaseq.initialise(params, log, valid_params)
 
-// Check input path parameters to see if they exist
-checkPathParamList = [
-    params.input, params.multiqc_config,
-    params.fasta, params.transcript_fasta, params.additional_fasta,
-    params.gtf, params.gff, params.gene_bed,
-    params.ribo_database_manifest, params.splicesites,
-    params.star_index, params.hisat2_index, params.rsem_index, params.salmon_index
-]
-for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
+// // Check input path parameters to see if they exist
+// checkPathParamList = [
+//     params.input, params.multiqc_config,
+//     params.fasta, params.transcript_fasta, params.additional_fasta,
+//     params.gtf, params.gff, params.gene_bed,
+//     params.ribo_database_manifest, params.splicesites,
+//     params.star_index, params.hisat2_index, params.rsem_index, params.salmon_index
+// ]
+// for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
-// Check mandatory parameters
-if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
+// // Check mandatory parameters
+// if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
 
-// Check rRNA databases for sortmerna
-if (params.remove_ribo_rna) {
-    ch_ribo_db = file(params.ribo_database_manifest, checkIfExists: true)
-    if (ch_ribo_db.isEmpty()) {exit 1, "File provided with --ribo_database_manifest is empty: ${ch_ribo_db.getName()}!"}
-}
+// // Check rRNA databases for sortmerna
+// if (params.remove_ribo_rna) {
+//     ch_ribo_db = file(params.ribo_database_manifest, checkIfExists: true)
+//     if (ch_ribo_db.isEmpty()) {exit 1, "File provided with --ribo_database_manifest is empty: ${ch_ribo_db.getName()}!"}
+// }
 
-// Check if file with list of fastas is provided when running BBSplit
-if (!params.skip_bbsplit && !params.bbsplit_index && params.bbsplit_fasta_list) {
-    ch_bbsplit_fasta_list = file(params.bbsplit_fasta_list, checkIfExists: true)
-    if (ch_bbsplit_fasta_list.isEmpty()) {exit 1, "File provided with --bbsplit_fasta_list is empty: ${ch_bbsplit_fasta_list.getName()}!"}
-}
+// // Check if file with list of fastas is provided when running BBSplit
+// if (!params.skip_bbsplit && !params.bbsplit_index && params.bbsplit_fasta_list) {
+//     ch_bbsplit_fasta_list = file(params.bbsplit_fasta_list, checkIfExists: true)
+//     if (ch_bbsplit_fasta_list.isEmpty()) {exit 1, "File provided with --bbsplit_fasta_list is empty: ${ch_bbsplit_fasta_list.getName()}!"}
+// }
 
-// Check alignment parameters
-def prepareToolIndices  = []
-if (!params.skip_bbsplit)   { prepareToolIndices << 'bbsplit'             }
-if (!params.skip_alignment) { prepareToolIndices << params.aligner        }
-if (params.pseudo_aligner)  { prepareToolIndices << params.pseudo_aligner }
+// // Check alignment parameters
+// def prepareToolIndices  = []
+// if (!params.skip_bbsplit)   { prepareToolIndices << 'bbsplit'             }
+// if (!params.skip_alignment) { prepareToolIndices << params.aligner        }
+// if (params.pseudo_aligner)  { prepareToolIndices << params.pseudo_aligner }
 
-// Get RSeqC modules to run
-def rseqc_modules = params.rseqc_modules ? params.rseqc_modules.split(',').collect{ it.trim().toLowerCase() } : []
-if (params.bam_csi_index) {
-    for (rseqc_module in ['read_distribution', 'inner_distance', 'tin']) {
-        if (rseqc_modules.contains(rseqc_module)) {
-            rseqc_modules.remove(rseqc_module)
-        }
-    }
-}
+// // Get RSeqC modules to run
+// def rseqc_modules = params.rseqc_modules ? params.rseqc_modules.split(',').collect{ it.trim().toLowerCase() } : []
+// if (params.bam_csi_index) {
+//     for (rseqc_module in ['read_distribution', 'inner_distance', 'tin']) {
+//         if (rseqc_modules.contains(rseqc_module)) {
+//             rseqc_modules.remove(rseqc_module)
+//         }
+//     }
+// }
 
-// Stage dummy file to be used as an optional input where required
-ch_dummy_file = file("$projectDir/assets/dummy_file.txt", checkIfExists: true)
+// // Stage dummy file to be used as an optional input where required
+// ch_dummy_file = file("$projectDir/assets/dummy_file.txt", checkIfExists: true)
 
-// Check if an AWS iGenome has been provided to use the appropriate version of STAR
-def is_aws_igenome = false
-if (params.fasta && params.gtf) {
-    if ((file(params.fasta).getName() - '.gz' == 'genome.fa') && (file(params.gtf).getName() - '.gz' == 'genes.gtf')) {
-        is_aws_igenome = true
-    }
-}
+// // Check if an AWS iGenome has been provided to use the appropriate version of STAR
+// def is_aws_igenome = false
+// if (params.fasta && params.gtf) {
+//     if ((file(params.fasta).getName() - '.gz' == 'genome.fa') && (file(params.gtf).getName() - '.gz' == 'genes.gtf')) {
+//         is_aws_igenome = true
+//     }
+// }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,15 +72,15 @@ if (params.fasta && params.gtf) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
-ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
+// ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
+// ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
+// ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
+// ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
 
-// Header files for MultiQC
-ch_pca_header_multiqc        = file("$projectDir/assets/multiqc/deseq2_pca_header.txt", checkIfExists: true)
-ch_clustering_header_multiqc = file("$projectDir/assets/multiqc/deseq2_clustering_header.txt", checkIfExists: true)
-ch_biotypes_header_multiqc   = file("$projectDir/assets/multiqc/biotypes_header.txt", checkIfExists: true)
+// // Header files for MultiQC
+// ch_pca_header_multiqc        = file("$projectDir/assets/multiqc/deseq2_pca_header.txt", checkIfExists: true)
+// ch_clustering_header_multiqc = file("$projectDir/assets/multiqc/deseq2_clustering_header.txt", checkIfExists: true)
+// ch_biotypes_header_multiqc   = file("$projectDir/assets/multiqc/biotypes_header.txt", checkIfExists: true)
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

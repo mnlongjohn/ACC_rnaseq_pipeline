@@ -17,14 +17,13 @@ nextflow.enable.dsl = 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-params.fasta            = WorkflowMain.getGenomeAttribute(params, 'fasta')
-params.transcript_fasta = WorkflowMain.getGenomeAttribute(params, 'transcript_fasta')
-params.additional_fasta = WorkflowMain.getGenomeAttribute(params, 'additional_fasta')
-params.gtf              = WorkflowMain.getGenomeAttribute(params, 'gtf')
-params.gff              = WorkflowMain.getGenomeAttribute(params, 'gff')
-params.gene_bed         = WorkflowMain.getGenomeAttribute(params, 'bed12')
-params.star_index       = WorkflowMain.getGenomeAttribute(params, 'star')
-......
+// params.fasta            = WorkflowMain.getGenomeAttribute(params, 'fasta')
+// params.transcript_fasta = WorkflowMain.getGenomeAttribute(params, 'transcript_fasta')
+// params.additional_fasta = WorkflowMain.getGenomeAttribute(params, 'additional_fasta')
+// params.gtf              = WorkflowMain.getGenomeAttribute(params, 'gtf')
+// params.gff              = WorkflowMain.getGenomeAttribute(params, 'gff')
+// params.gene_bed         = WorkflowMain.getGenomeAttribute(params, 'bed12')
+// params.star_index       = WorkflowMain.getGenomeAttribute(params, 'star')
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -32,7 +31,7 @@ params.star_index       = WorkflowMain.getGenomeAttribute(params, 'star')
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-WorkflowMain.initialise(workflow, params, log)
+// WorkflowMain.initialise(workflow, params, log)
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,13 +39,13 @@ WorkflowMain.initialise(workflow, params, log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { ACCRNASEQ } from './workflows/accrnaseq'
+include { ACCRNASEQ } from './workflows/rnaseq'
 
 //
 // WORKFLOW: Run main nf-core/rnaseq analysis pipeline
 //
-workflow NFCORE_RNASEQ {
-    ACCRNASEQ ()
+workflow ACC_RNASEQ {
+    RNASEQ ()
 }
 
 /*
@@ -57,10 +56,9 @@ workflow NFCORE_RNASEQ {
 
 //
 // WORKFLOW: Execute a single named workflow for the pipeline
-// See: https://github.com/nf-core/rnaseq/issues/619
 //
 workflow {
-    NFCORE_ACCRNASEQ ()
+    ACC_RNASEQ ()
 }
 
 /*
