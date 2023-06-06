@@ -64,7 +64,6 @@ workflow RNASEQ {
         .ifEmpty { exit 1, "Cannot find any star index directory: ${params.star_index}\n" }
         .first()
         .set { star_index }
-
     // reference genome fasta file for samtools and picard
     Channel
         .fromPath(params.genome_fasta, type: 'file', checkIfExists: true)
@@ -72,20 +71,24 @@ workflow RNASEQ {
         .map { it -> tuple([id: it.simpleName], file(it)) }
         .first()
         .set { ch_genome_fasta }
-
     // reference genome transcript fasta for salmon
     Channel
         .fromPath(params.genome_transcript, type: 'file', checkIfExists: true)
         .ifEmpty { exit 1, "Cannot find any reference transcript fasta file: ${params.transcript_fasta}\n" }
         .first()
         .set { ch_transcript_fasta }
-
     // reference genome gtf file for salmon
     Channel
         .fromPath(params.genome_gtf, type: 'file', checkIfExists: true)
         .ifEmpty { exit 1, "Cannot find any reference gtf file: ${params.gtf}\n" }
         .first()
-        .set { ch_gtf }
+        .set { ch_genome_gtf }
+    // indexed genome for salmon quant
+    Channel
+        .fromPath(params.salmon_index, type: 'dir', checkIfExists: true)
+        .ifEmpty { exit 1, "Cannot find any salmon index directory: ${params.salmon_index}\n" }
+        .first()
+        .set { ch_salmon_index }
 
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
@@ -142,7 +145,7 @@ workflow RNASEQ {
         ch_strand_fastq.auto_strand,
         ch_salmon_genome_fasta,
         ch_transcript_fasta,
-        ch_gtf,
+        ch_genome_gtf,
         ch_salmon_index,
         !params.salmon_index
     )
