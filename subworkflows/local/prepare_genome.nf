@@ -17,10 +17,10 @@ include { GFFREAD                           } from '../../modules/nf-core/gffrea
 include { STAR_GENOMEGENERATE               } from '../../modules/nf-core/star/genomegenerate/main'
 include { SALMON_INDEX                      } from '../../modules/nf-core/salmon/index/main'
 
-include { PREPROCESS_TRANSCRIPTS_FASTA_GENCODE } from '../../modules/local/preprocess_transcripts_fasta_gencode'
-include { GTF2BED                              } from '../../modules/local/gtf2bed'
-include { CAT_ADDITIONAL_FASTA                 } from '../../modules/local/cat_additional_fasta'
-include { GTF_GENE_FILTER                      } from '../../modules/local/gtf_gene_filter'
+include { PREPROCESS_TRANSCRIPTS_FASTA_GENCODE } from '../../modules/local/preprocess_transcripts_fasta_gencode/main'
+include { GTF2BED                              } from '../../modules/local/gtf2bed/main'
+include { CAT_ADDITIONAL_FASTA                 } from '../../modules/local/cat_additional_fasta/main'
+include { GTF_GENE_FILTER                      } from '../../modules/local/gtf_gene_filter/main'
 
 workflow PREPARE_GENOME {
     take:
