@@ -39,21 +39,6 @@ class WorkflowRnaseq {
             transcriptsFastaWarn(log)
         }
 
-        if (!params.skip_bbsplit && !params.bbsplit_index && !params.bbsplit_fasta_list) {
-            Nextflow.error("Please provide either --bbsplit_fasta_list / --bbsplit_index to run BBSplit.")
-        }
-
-        if (params.remove_ribo_rna && !params.ribo_database_manifest) {
-            Nextflow.error("Please provide --ribo_database_manifest to remove ribosomal RNA with SortMeRNA.")
-        }
-
-
-        if (params.with_umi && !params.skip_umi_extract) {
-            if (!params.umitools_bc_pattern && !params.umitools_bc_pattern2) {
-                Nextflow.error("UMI-tools requires a barcode pattern to extract barcodes from the reads.")
-            }
-        }
-
         if (!params.skip_trimming) {
             if (!valid_params['trimmers'].contains(params.trimmer)) {
                 Nextflow.error("Invalid option: '${params.trimmer}'. Valid options for '--trimmer': ${valid_params['trimmers'].join(', ')}.")
@@ -78,38 +63,22 @@ class WorkflowRnaseq {
             }
         }
 
-        // Checks when running --aligner star_rsem
-        if (!params.skip_alignment && params.aligner == 'star_rsem') {
-            if (params.with_umi) {
-                rsemUmiError(log)
-            }
-            if (params.rsem_index && params.star_index) {
-                rsemStarIndexWarn(log)
-            }
-        }
-
         // Warn if --additional_fasta provided with aligner index
         if (!params.skip_alignment && params.additional_fasta) {
             def index = ''
             if (params.aligner == 'star_salmon' && params.star_index) {
                 index = 'star'
             }
-            if (params.aligner == 'star_rsem' && params.rsem_index) {
-                index = 'rsem'
-            }
-            if (params.aligner == 'hisat2' && params.hisat2_index) {
-                index = 'hisat2'
-            }
             if (index) {
                 additionaFastaIndexWarn(index, log)
             }
         }
 
-        // Check which RSeQC modules we are running
-        def rseqc_modules = params.rseqc_modules ? params.rseqc_modules.split(',').collect{ it.trim().toLowerCase() } : []
-        if ((valid_params['rseqc_modules'] + rseqc_modules).unique().size() != valid_params['rseqc_modules'].size()) {
-            Nextflow.error("Invalid option: ${params.rseqc_modules}. Valid options for '--rseqc_modules': ${valid_params['rseqc_modules'].join(', ')}")
-        }
+        // // Check which RSeQC modules we are running
+        // def rseqc_modules = params.rseqc_modules ? params.rseqc_modules.split(',').collect{ it.trim().toLowerCase() } : []
+        // if ((valid_params['rseqc_modules'] + rseqc_modules).unique().size() != valid_params['rseqc_modules'].size()) {
+        //     Nextflow.error("Invalid option: ${params.rseqc_modules}. Valid options for '--rseqc_modules': ${valid_params['rseqc_modules'].join(', ')}")
+        // }
     }
 
     //
@@ -364,33 +333,6 @@ class WorkflowRnaseq {
         log.warn "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" +
             "  '--skip_alignment' parameter has been provided.\n" +
             "  Skipping alignment, genome-based quantification and all downstream QC processes.\n" +
-            "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-    }
-
-    //
-    // Print a warning if using '--aligner star_rsem' and '--with_umi'
-    //
-    private static void rsemUmiError(log) {
-        def error_string = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" +
-            "  When using '--aligner star_rsem', STAR is run by RSEM itself and so it is\n" +
-            "  not possible to remove UMIs before the quantification.\n\n" +
-            "  If you would like to remove UMI barcodes using the '--with_umi' option\n" +
-            "  please use either '--aligner star_salmon' or '--aligner hisat2'.\n" +
-            "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-        Nextflow.error(error_string)
-    }
-
-    //
-    // Print a warning if using '--aligner star_rsem' and providing both '--rsem_index' and '--star_index'
-    //
-    private static void rsemStarIndexWarn(log) {
-        log.warn "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" +
-            "  When using '--aligner star_rsem', both the STAR and RSEM indices should\n" +
-            "  be present in the path specified by '--rsem_index'.\n\n" +
-            "  This warning has been generated because you have provided both\n" +
-            "  '--rsem_index' and '--star_index'. The pipeline will ignore the latter.\n\n" +
-            "  Please see:\n" +
-            "  https://github.com/nf-core/rnaseq/issues/568\n" +
             "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
     }
 

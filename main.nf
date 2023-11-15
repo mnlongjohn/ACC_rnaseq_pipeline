@@ -1,11 +1,9 @@
 #!/usr/bin/env nextflow
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    nf-core/ACC_rnaseq
+    nf-core/rnaseq
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Github : https://github.com/
-    Website: https://
-    Slack  : https://
+    Github : 
 ----------------------------------------------------------------------------------------
 */
 
@@ -17,7 +15,13 @@ nextflow.enable.dsl = 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// add back later
+params.fasta            = WorkflowMain.getGenomeAttribute(params, 'fasta')
+params.transcript_fasta = WorkflowMain.getGenomeAttribute(params, 'transcript_fasta')
+params.additional_fasta = WorkflowMain.getGenomeAttribute(params, 'additional_fasta')
+params.gtf              = WorkflowMain.getGenomeAttribute(params, 'gtf')
+params.gff              = WorkflowMain.getGenomeAttribute(params, 'gff')
+params.star_index       = WorkflowMain.getGenomeAttribute(params, 'star')
+params.salmon_index     = WorkflowMain.getGenomeAttribute(params, 'salmon')
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -25,7 +29,7 @@ nextflow.enable.dsl = 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// add back later
+// WorkflowMain.initialise(workflow, params, log)
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -36,7 +40,7 @@ nextflow.enable.dsl = 2
 include { RNASEQ } from './workflows/rnaseq'
 
 //
-// WORKFLOW: Run main nf-core/rnaseq analysis pipeline
+// WORKFLOW: Run main acc/rnaseq analysis pipeline
 //
 workflow ACC_RNASEQ {
     RNASEQ ()
@@ -50,6 +54,7 @@ workflow ACC_RNASEQ {
 
 //
 // WORKFLOW: Execute a single named workflow for the pipeline
+// See: https://github.com/nf-core/rnaseq/issues/619
 //
 workflow {
     ACC_RNASEQ ()
