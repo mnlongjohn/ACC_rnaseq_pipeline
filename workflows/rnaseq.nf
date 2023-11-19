@@ -97,7 +97,7 @@ include { CAT_FASTQ                   } from '../modules/nf-core/cat/fastq/main'
 include { FASTQ_SUBSAMPLE_FQ_SALMON        } from '../subworkflows/nf-core/fastq_subsample_fq_salmon/main'
 include { FASTQ_FASTQC_UMITOOLS_FASTP      } from '../subworkflows/nf-core/fastq_fastqc_umitools_fastp/main'
 include { BAM_SORT_STATS_SAMTOOLS          } from '../subworkflows/nf-core/bam_sort_stats_samtools/main'
-// include { BAM_MARKDUPLICATES_PICARD        } from '../subworkflows/nf-core/bam_markduplicates_picard/main'
+include { BAM_MARKDUPLICATES_PICARD        } from '../subworkflows/nf-core/bam_markduplicates_picard/main'
 // include { BAM_RSEQC                        } from '../subworkflows/nf-core/bam_rseqc/main'
 // include { BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS as BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS_GENOME        } from '../subworkflows/nf-core/bam_dedup_stats_samtools_umitools/main'
 // include { BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS as BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS_TRANSCRIPTOME } from '../subworkflows/nf-core/bam_dedup_stats_samtools_umitools/main'
@@ -320,4 +320,136 @@ workflow RNASEQ {
             ch_versions = ch_versions.mix(DESEQ2_QC_STAR_SALMON.out.versions)
         }
     }
+
+    //
+    // Filter channels to get samples that passed STAR minimum mapping percentage
+    //
+    ch_fail_mapping_multiqc = Channel.empty()
+    if (!params.skip_alignment && params.aligner.contains('star')) {
+        ch_star_multiqc
+            .map { meta, align_log -> [ meta ] + WorkflowRnaseq.getStarPercentMapped(params, align_log) }
+            .set { ch_percent_mapped }
+
+        ch_genome_bam
+            .join(ch_percent_mapped, by: [0])
+            .map { meta, ofile, mapped, pass -> if (pass) [ meta, ofile ] }
+            .set { ch_genome_bam }
+
+        ch_genome_bam_index
+            .join(ch_percent_mapped, by: [0])
+            .map { meta, ofile, mapped, pass -> if (pass) [ meta, ofile ] }
+            .set { ch_genome_bam_index }
+
+        ch_percent_mapped
+            .branch { meta, mapped, pass ->
+                pass: pass
+                    pass_mapped_reads[meta.id] = true
+                    return [ "$meta.id\t$mapped" ]
+                fail: !pass
+                    pass_mapped_reads[meta.id] = false
+                    return [ "$meta.id\t$mapped" ]
+            }
+            .set { ch_pass_fail_mapped }
+
+        ch_pass_fail_mapped
+            .fail
+            .collect()
+            .map {
+                tsv_data ->
+                    def header = ["Sample", "STAR uniquely mapped reads (%)"]
+                    WorkflowRnaseq.multiqcTsvFromList(tsv_data, header)
+            }
+            .set { ch_fail_mapping_multiqc }
+    }
+
+    //
+    // SUBWORKFLOW: Mark duplicate reads
+    //
+    ch_markduplicates_multiqc = Channel.empty()
+    if (!params.skip_alignment && !params.skip_markduplicates && !params.with_umi) {
+        BAM_MARKDUPLICATES_PICARD (
+            ch_genome_bam,
+            PREPARE_GENOME.out.fasta.map { [ [:], it ] },
+            PREPARE_GENOME.out.fai.map { [ [:], it ] }
+        )
+        ch_genome_bam             = BAM_MARKDUPLICATES_PICARD.out.bam
+        ch_genome_bam_index       = BAM_MARKDUPLICATES_PICARD.out.bai
+        ch_samtools_stats         = BAM_MARKDUPLICATES_PICARD.out.stats
+        ch_samtools_flagstat      = BAM_MARKDUPLICATES_PICARD.out.flagstat
+        ch_samtools_idxstats      = BAM_MARKDUPLICATES_PICARD.out.idxstats
+        ch_markduplicates_multiqc = BAM_MARKDUPLICATES_PICARD.out.metrics
+        if (params.bam_csi_index) {
+            ch_genome_bam_index = BAM_MARKDUPLICATES_PICARD.out.csi
+        }
+        ch_versions = ch_versions.mix(BAM_MARKDUPLICATES_PICARD.out.versions)
+    }
+
+    // //
+    // // MODULE: STRINGTIE
+    // //
+    // if (!params.skip_alignment && !params.skip_stringtie) {
+    //     STRINGTIE_STRINGTIE (
+    //         ch_genome_bam,
+    //         PREPARE_GENOME.out.gtf
+    //     )
+    //     ch_versions = ch_versions.mix(STRINGTIE_STRINGTIE.out.versions.first())
+    // }
+
+    // //
+    // // MODULE: Feature biotype QC using featureCounts
+    // //
+    // ch_featurecounts_multiqc = Channel.empty()
+    // if (!params.skip_alignment && !params.skip_qc && !params.skip_biotype_qc && biotype) {
+
+    //     PREPARE_GENOME
+    //         .out
+    //         .gtf
+    //         .map { WorkflowRnaseq.biotypeInGtf(it, biotype, log) }
+    //         .set { biotype_in_gtf }
+
+    //     // Prevent any samples from running if GTF file doesn't have a valid biotype
+    //     ch_genome_bam
+    //         .combine(PREPARE_GENOME.out.gtf)
+    //         .combine(biotype_in_gtf)
+    //         .filter { it[-1] }
+    //         .map { it[0..<it.size()-1] }
+    //         .set { ch_featurecounts }
+
+    //     SUBREAD_FEATURECOUNTS (
+    //         ch_featurecounts
+    //     )
+    //     ch_versions = ch_versions.mix(SUBREAD_FEATURECOUNTS.out.versions.first())
+
+    //     MULTIQC_CUSTOM_BIOTYPE (
+    //         SUBREAD_FEATURECOUNTS.out.counts,
+    //         ch_biotypes_header_multiqc
+    //     )
+    //     ch_featurecounts_multiqc = MULTIQC_CUSTOM_BIOTYPE.out.tsv
+    //     ch_versions = ch_versions.mix(MULTIQC_CUSTOM_BIOTYPE.out.versions.first())
+    // }
+
+    // //
+    // // MODULE: Genome-wide coverage with BEDTools
+    // //
+    // if (!params.skip_alignment && !params.skip_bigwig) {
+
+    //     BEDTOOLS_GENOMECOV (
+    //         ch_genome_bam
+    //     )
+    //     ch_versions = ch_versions.mix(BEDTOOLS_GENOMECOV.out.versions.first())
+
+    //     //
+    //     // SUBWORKFLOW: Convert bedGraph to bigWig
+    //     //
+    //     BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_FORWARD (
+    //         BEDTOOLS_GENOMECOV.out.bedgraph_forward,
+    //         PREPARE_GENOME.out.chrom_sizes
+    //     )
+    //     ch_versions = ch_versions.mix(BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_FORWARD.out.versions)
+
+    //     BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_REVERSE (
+    //         BEDTOOLS_GENOMECOV.out.bedgraph_reverse,
+    //         PREPARE_GENOME.out.chrom_sizes
+    //     )
+    // }
 }
