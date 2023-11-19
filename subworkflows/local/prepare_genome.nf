@@ -145,7 +145,7 @@ workflow PREPARE_GENOME {
                 ch_star_index = Channel.value(file(star_index))
             }
         } else {
-            ch_star_index = STAR_GENOMEGENERATE ( ch_fasta, ch_gtf ).index
+            ch_star_index = STAR_GENOMEGENERATE ( ch_fasta.map { [ [:], it ] }, ch_gtf.map { [ [:], it ] } ).index
             ch_versions   = ch_versions.mix(STAR_GENOMEGENERATE.out.versions)
         }
     }
