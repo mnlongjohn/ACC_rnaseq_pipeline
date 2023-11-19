@@ -95,7 +95,7 @@ include { CAT_FASTQ                   } from '../modules/nf-core/cat/fastq/main'
 // SUBWORKFLOW: Consisting entirely of nf-core/modules
 //
 include { FASTQ_SUBSAMPLE_FQ_SALMON        } from '../subworkflows/nf-core/fastq_subsample_fq_salmon/main'
-// include { FASTQ_FASTQC_UMITOOLS_FASTP      } from '../subworkflows/nf-core/fastq_fastqc_umitools_fastp/main'
+include { FASTQ_FASTQC_UMITOOLS_FASTP      } from '../subworkflows/nf-core/fastq_fastqc_umitools_fastp/main'
 // include { BAM_SORT_STATS_SAMTOOLS          } from '../subworkflows/nf-core/bam_sort_stats_samtools/main'
 // include { BAM_MARKDUPLICATES_PICARD        } from '../subworkflows/nf-core/bam_markduplicates_picard/main'
 // include { BAM_RSEQC                        } from '../subworkflows/nf-core/bam_rseqc/main'
