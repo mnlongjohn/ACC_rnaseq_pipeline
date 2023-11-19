@@ -1,7 +1,7 @@
-name: gtf_gene_filter
+name: gtf2bed
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
-  - conda-forge::python=3.9.5
+  - conda-forge::perl=5.26.2

@@ -1,31 +1,32 @@
-process GTF2BED {
-    tag "$gtf"
-    label 'process_low'
+process GTF_GENE_FILTER {
+    tag "$fasta"
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/perl:5.26.2' :
-        'biocontainers/perl:5.26.2' }"
+        'https://depot.galaxyproject.org/singularity/python:3.9--1' :
+        'biocontainers/python:3.9--1' }"
 
     input:
+    path fasta
     path gtf
 
     output:
-    path '*.bed'       , emit: bed
+    path "*.gtf"       , emit: gtf
     path "versions.yml", emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
-    script: // This script is bundled with the pipeline, in nf-core/rnaseq/bin/
+    script: // filter_gtf_for_genes_in_genome.py is bundled with the pipeline, in nf-core/rnaseq/bin/
     """
-    gtf2bed \\
-        $gtf \\
-        > ${gtf.baseName}.bed
+    filter_gtf_for_genes_in_genome.py \\
+        --gtf $gtf \\
+        --fasta $fasta \\
+        -o ${fasta.baseName}_genes.gtf
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        perl: \$(echo \$(perl --version 2>&1) | sed 's/.*v\\(.*\\)) built.*/\\1/')
+        python: \$(python --version | sed 's/Python //g')
     END_VERSIONS
     """
 }
