@@ -74,8 +74,8 @@ ch_dummy_file = file("$projectDir/assets/dummy_file.txt", checkIfExists: true)
 include { INPUT_CHECK    } from '../subworkflows/local/input_check'
 include { PREPARE_GENOME } from '../subworkflows/local/prepare_genome'
 include { ALIGN_STAR     } from '../subworkflows/local/align_star'
-// include { QUANTIFY_SALMON as QUANTIFY_STAR_SALMON } from '../subworkflows/local/quantify_salmon'
-// include { QUANTIFY_SALMON as QUANTIFY_SALMON      } from '../subworkflows/local/quantify_salmon'
+include { QUANTIFY_SALMON as QUANTIFY_STAR_SALMON } from '../subworkflows/local/quantify_salmon'
+include { QUANTIFY_SALMON as QUANTIFY_SALMON      } from '../subworkflows/local/quantify_salmon'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -296,28 +296,28 @@ workflow RNASEQ {
         }
         ch_versions = ch_versions.mix(ALIGN_STAR.out.versions)
 
-    //     //
-    //     // SUBWORKFLOW: Count reads from BAM alignments using Salmon
-    //     //
-    //     QUANTIFY_STAR_SALMON (
-    //         ch_transcriptome_bam,
-    //         ch_dummy_file,
-    //         PREPARE_GENOME.out.transcript_fasta,
-    //         PREPARE_GENOME.out.gtf,
-    //         true,
-    //         params.salmon_quant_libtype ?: ''
-    //     )
-    //     ch_versions = ch_versions.mix(QUANTIFY_STAR_SALMON.out.versions)
+        //
+        // SUBWORKFLOW: Count reads from BAM alignments using Salmon
+        //
+        QUANTIFY_STAR_SALMON (
+            ch_transcriptome_bam,
+            ch_dummy_file,
+            PREPARE_GENOME.out.transcript_fasta,
+            PREPARE_GENOME.out.gtf,
+            true,
+            params.salmon_quant_libtype ?: ''
+        )
+        ch_versions = ch_versions.mix(QUANTIFY_STAR_SALMON.out.versions)
 
-    //     if (!params.skip_qc & !params.skip_deseq2_qc) {
-    //         DESEQ2_QC_STAR_SALMON (
-    //             QUANTIFY_STAR_SALMON.out.counts_gene_length_scaled,
-    //             ch_pca_header_multiqc,
-    //             ch_clustering_header_multiqc
-    //         )
-    //         ch_aligner_pca_multiqc        = DESEQ2_QC_STAR_SALMON.out.pca_multiqc
-    //         ch_aligner_clustering_multiqc = DESEQ2_QC_STAR_SALMON.out.dists_multiqc
-    //         ch_versions = ch_versions.mix(DESEQ2_QC_STAR_SALMON.out.versions)
-    //     }
-    // }
+        if (!params.skip_qc & !params.skip_deseq2_qc) {
+            DESEQ2_QC_STAR_SALMON (
+                QUANTIFY_STAR_SALMON.out.counts_gene_length_scaled,
+                ch_pca_header_multiqc,
+                ch_clustering_header_multiqc
+            )
+            ch_aligner_pca_multiqc        = DESEQ2_QC_STAR_SALMON.out.pca_multiqc
+            ch_aligner_clustering_multiqc = DESEQ2_QC_STAR_SALMON.out.dists_multiqc
+            ch_versions = ch_versions.mix(DESEQ2_QC_STAR_SALMON.out.versions)
+        }
+    }
 }

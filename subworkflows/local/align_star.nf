@@ -30,7 +30,7 @@ workflow ALIGN_STAR {
     ch_bam_transcript = Channel.empty()
     ch_fastq          = Channel.empty()
     ch_tab            = Channel.empty()
-    STAR_ALIGN ( reads, index, gtf, star_ignore_sjdbgtf, seq_platform, seq_center )
+    STAR_ALIGN ( reads, index, gtf.map { [ [:], it ] }, star_ignore_sjdbgtf, seq_platform, seq_center )
     ch_orig_bam       = STAR_ALIGN.out.bam
     ch_log_final      = STAR_ALIGN.out.log_final
     ch_log_out        = STAR_ALIGN.out.log_out
