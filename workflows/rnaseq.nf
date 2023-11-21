@@ -61,7 +61,7 @@ ch_biotypes_header_multiqc   = file("$projectDir/assets/multiqc/biotypes_header.
 //
 // MODULE: Loaded from modules/local/
 //
-// include { BEDTOOLS_GENOMECOV                 } from '../modules/local/bedtools_genomecov'
+include { BEDTOOLS_GENOMECOV                 } from '../modules/local/bedtools_genomecov/main'
 include { DESEQ2_QC as DESEQ2_QC_STAR_SALMON } from '../modules/local/deseq2_qc/main'
 include { DESEQ2_QC as DESEQ2_QC_SALMON      } from '../modules/local/deseq2_qc/main'
 // include { DUPRADAR                           } from '../modules/local/dupradar'
