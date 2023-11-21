@@ -101,8 +101,8 @@ include { BAM_MARKDUPLICATES_PICARD        } from '../subworkflows/nf-core/bam_m
 // include { BAM_RSEQC                        } from '../subworkflows/nf-core/bam_rseqc/main'
 // include { BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS as BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS_GENOME        } from '../subworkflows/nf-core/bam_dedup_stats_samtools_umitools/main'
 // include { BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS as BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS_TRANSCRIPTOME } from '../subworkflows/nf-core/bam_dedup_stats_samtools_umitools/main'
-// include { BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG as BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_FORWARD } from '../subworkflows/nf-core/bedgraph_bedclip_bedgraphtobigwig/main'
-// include { BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG as BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_REVERSE } from '../subworkflows/nf-core/bedgraph_bedclip_bedgraphtobigwig/main'
+include { BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG as BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_FORWARD } from '../subworkflows/nf-core/bedgraph_bedclip_bedgraphtobigwig/main'
+include { BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG as BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_REVERSE } from '../subworkflows/nf-core/bedgraph_bedclip_bedgraphtobigwig/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -428,28 +428,28 @@ workflow RNASEQ {
     //     ch_versions = ch_versions.mix(MULTIQC_CUSTOM_BIOTYPE.out.versions.first())
     // }
 
-    // //
-    // // MODULE: Genome-wide coverage with BEDTools
-    // //
-    // if (!params.skip_alignment && !params.skip_bigwig) {
+    //
+    // MODULE: Genome-wide coverage with BEDTools
+    //
+    if (!params.skip_alignment && !params.skip_bigwig) {
 
-    //     BEDTOOLS_GENOMECOV (
-    //         ch_genome_bam
-    //     )
-    //     ch_versions = ch_versions.mix(BEDTOOLS_GENOMECOV.out.versions.first())
+        BEDTOOLS_GENOMECOV (
+            ch_genome_bam
+        )
+        ch_versions = ch_versions.mix(BEDTOOLS_GENOMECOV.out.versions.first())
 
-    //     //
-    //     // SUBWORKFLOW: Convert bedGraph to bigWig
-    //     //
-    //     BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_FORWARD (
-    //         BEDTOOLS_GENOMECOV.out.bedgraph_forward,
-    //         PREPARE_GENOME.out.chrom_sizes
-    //     )
-    //     ch_versions = ch_versions.mix(BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_FORWARD.out.versions)
+        //
+        // SUBWORKFLOW: Convert bedGraph to bigWig
+        //
+        BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_FORWARD (
+            BEDTOOLS_GENOMECOV.out.bedgraph_forward,
+            PREPARE_GENOME.out.chrom_sizes
+        )
+        ch_versions = ch_versions.mix(BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_FORWARD.out.versions)
 
-    //     BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_REVERSE (
-    //         BEDTOOLS_GENOMECOV.out.bedgraph_reverse,
-    //         PREPARE_GENOME.out.chrom_sizes
-    //     )
-    // }
+        BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG_REVERSE (
+            BEDTOOLS_GENOMECOV.out.bedgraph_reverse,
+            PREPARE_GENOME.out.chrom_sizes
+        )
+    }
 }
