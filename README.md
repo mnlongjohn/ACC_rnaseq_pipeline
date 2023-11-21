@@ -1,12 +1,12 @@
-# Microbiome Pipeline
-We present a novel microbiome analysis pipeline that quantifies microbial species counts from raw sequencing reads not belonging to the target organism's genome. This pipeline leverages the R package MetaScope to further reduce the error in the final output counts. MetaScope is a tool that uses a probabilistic model to assign reads to microbial taxa based on their similarity to reference genomes. Our pipeline integrates MetaScope with other methods for quality control, data preprocessing, and network analysis, and provides a comprehensive framework for microbiome studies. We demonstrate the performance and applicability of our pipeline on several datasets from different environments and organisms.
+# EV - RNA Pipeline
+We present a novel RNA sequencing (whole transcriptomics) analysis pipeline that quantifies gene/transcript counts from raw RNA sequencing reads based on alignment to the target organism's genome. This pipeline leverages on Linux, python and R packages to identify transcript packaging. Our pipeline integrates packages from the aforementioned tools for quality control, data pre-processing, differential gene analysis, and provides a comprehensive framework for RNA packaging studies. We demonstrate this pipeline’s performance and applicability to datasets from different organisms and biofluids.
 
 ## Nextflow
-Nextflow is a workflow management system that allows us to write scalable and reproducible pipelines for analysis. It simplifies the execution of complex tasks across different computing platforms and environments. Singularity is a container manager that enables us to run applications in isolated and portable environments. It helps us to avoid dependency conflicts and ensure reproducibility of our results. Anaconda is a software distribution that provides us with a large collection of tools and libraries for data analysis, including microbiome-specific packages. It also allows us to create and manage virtual environments for different projects. Together, these three software's complement each other by providing us with a flexible, robust and efficient framework for microbiome analysis.
+Nextflow is a workflow management system that allows for writing scalable and reproducible pipelines for automating analysis. It simplifies the execution of several complex tasks across computing platforms and environments. Singularity is a container manager that enables the running of applications in isolated and portable environments. It helps avoid conflicts of dependencies and ensures reproducibility results. Anaconda is a software distribution that provides a large repertoire of tools and libraries for data analysis, including sequencing-specific packages. It also allows the creation and management of virtual environments for different projects. Together, these software are deployed to provide a flexible, robust and efficient framework for RNA sequencing analysis.
 
 # Installation
 ## Anaconda
-We suggest using anaconda as it is a distribution of packages built for data science, and comes with conda, a package, and environment manager that you can use to create environments for isolating your projects that use different versions of Python and/or different version of packages.
+We suggest using anaconda, which is a distribution of packages built for data science. Anaconda comes with conda, a package, and an environment manager that can be used to create environments for isolating projects that use different versions of Python and it’s packages.
 
 1. Download the Anaconda installer for Linux from the [official website](https://docs.anaconda.com/anaconda/install/index.html).
 
@@ -59,9 +59,9 @@ java -version
     ```
 
 ## Singularity
-Singularity is a free and open-source computer program that performs operating-system-level virtualization also known as containerization. One of the main uses of Singularity is to bring containers and reproducibility to scientific computing and the high-performance computing (HPC) world1. Singularity is a container framework designed to run scientific applications on HPC-backed resources.
+Singularity is a free and open-source computer program that performs operating-system-level virtualisation also known as containerization. One of the main uses of Singularity is to bring containers and reproducibility to scientific computing and the high-performance computing (HPC) world. Singularity is a container framework designed to run scientific applications on HPC- based resources.
 
-Singularity is chosen by most HPCs as their primary container software because it allows users to pack an application/workflow/pipeline and all of its dependencies into a single image (file), which can be easily transported between different HPC systems3. Furthermore, Singularity assumes that the user does not have root privileges on the host OS, which makes it more secure than other containerization technologies.
+Singularity is chosen by most HPCs as their primary container software because it allows users to pack an application/workflow/pipeline and all of its dependencies into a single image (file). This file can be easily transported between different HPC systems. Furthermore, Singularity assumes that the user does not have root privileges on the host operating system (OS), making it more secure than other containerization technologies.
 
 1. Install dependencies:
     ```bash
