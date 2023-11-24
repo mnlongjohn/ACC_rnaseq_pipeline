@@ -89,7 +89,7 @@ include { QUANTIFY_SALMON as QUANTIFY_SALMON      } from '../subworkflows/local/
 include { CAT_FASTQ                   } from '../modules/nf-core/cat/fastq/main'
 // include { SAMTOOLS_SORT               } from '../modules/nf-core/samtools/sort/main'
 include { SUBREAD_FEATURECOUNTS       } from '../modules/nf-core/subread/featurecounts/main'
-// include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 //
 // SUBWORKFLOW: Consisting entirely of nf-core/modules
@@ -451,5 +451,170 @@ workflow RNASEQ {
             BEDTOOLS_GENOMECOV.out.bedgraph_reverse,
             PREPARE_GENOME.out.chrom_sizes
         )
+    }
+
+    //
+    // MODULE: Downstream QC steps
+    //
+    ch_qualimap_multiqc           = Channel.empty()
+    ch_dupradar_multiqc           = Channel.empty()
+    ch_bamstat_multiqc            = Channel.empty()
+    ch_inferexperiment_multiqc    = Channel.empty()
+    ch_innerdistance_multiqc      = Channel.empty()
+    ch_junctionannotation_multiqc = Channel.empty()
+    ch_junctionsaturation_multiqc = Channel.empty()
+    ch_readdistribution_multiqc   = Channel.empty()
+    ch_readduplication_multiqc    = Channel.empty()
+    ch_fail_strand_multiqc        = Channel.empty()
+    ch_tin_multiqc                = Channel.empty()
+    // if (!params.skip_alignment && !params.skip_qc) {
+    //     if (!params.skip_qualimap) {
+    //         QUALIMAP_RNASEQ (
+    //             ch_genome_bam,
+    //             PREPARE_GENOME.out.gtf
+    //         )
+    //         ch_qualimap_multiqc = QUALIMAP_RNASEQ.out.results
+    //         ch_versions = ch_versions.mix(QUALIMAP_RNASEQ.out.versions.first())
+    //     }
+
+    //     if (!params.skip_dupradar) {
+    //         DUPRADAR (
+    //             ch_genome_bam,
+    //             PREPARE_GENOME.out.gtf
+    //         )
+    //         ch_dupradar_multiqc = DUPRADAR.out.multiqc
+    //         ch_versions = ch_versions.mix(DUPRADAR.out.versions.first())
+    //     }
+
+    //     if (!params.skip_rseqc && rseqc_modules.size() > 0) {
+    //         BAM_RSEQC (
+    //             ch_genome_bam.join(ch_genome_bam_index, by: [0]),
+    //             PREPARE_GENOME.out.gene_bed,
+    //             rseqc_modules
+    //         )
+    //         ch_bamstat_multiqc            = BAM_RSEQC.out.bamstat_txt
+    //         ch_inferexperiment_multiqc    = BAM_RSEQC.out.inferexperiment_txt
+    //         ch_innerdistance_multiqc      = BAM_RSEQC.out.innerdistance_freq
+    //         ch_junctionannotation_multiqc = BAM_RSEQC.out.junctionannotation_log
+    //         ch_junctionsaturation_multiqc = BAM_RSEQC.out.junctionsaturation_rscript
+    //         ch_readdistribution_multiqc   = BAM_RSEQC.out.readdistribution_txt
+    //         ch_readduplication_multiqc    = BAM_RSEQC.out.readduplication_pos_xls
+    //         ch_tin_multiqc                = BAM_RSEQC.out.tin_txt
+    //         ch_versions = ch_versions.mix(BAM_RSEQC.out.versions)
+
+    //         ch_inferexperiment_multiqc
+    //             .map {
+    //                 meta, strand_log ->
+    //                     def inferred_strand = WorkflowRnaseq.getInferexperimentStrandedness(strand_log, 30)
+    //                     pass_strand_check[meta.id] = true
+    //                     if (meta.strandedness != inferred_strand[0]) {
+    //                         pass_strand_check[meta.id] = false
+    //                         return [ "$meta.id\t$meta.strandedness\t${inferred_strand.join('\t')}" ]
+    //                     }
+    //             }
+    //             .collect()
+    //             .map {
+    //                 tsv_data ->
+    //                     def header = [
+    //                         "Sample",
+    //                         "Provided strandedness",
+    //                         "Inferred strandedness",
+    //                         "Sense (%)",
+    //                         "Antisense (%)",
+    //                         "Undetermined (%)"
+    //                     ]
+    //                     WorkflowRnaseq.multiqcTsvFromList(tsv_data, header)
+    //             }
+    //             .set { ch_fail_strand_multiqc }
+    //     }
+    // }
+
+    //
+    // SUBWORKFLOW: Pseudo-alignment and quantification with Salmon
+    //
+    ch_salmon_multiqc                   = Channel.empty()
+    ch_pseudoaligner_pca_multiqc        = Channel.empty()
+    ch_pseudoaligner_clustering_multiqc = Channel.empty()
+    if (!params.skip_pseudo_alignment && params.pseudo_aligner == 'salmon') {
+        QUANTIFY_SALMON (
+            ch_filtered_reads,
+            PREPARE_GENOME.out.salmon_index,
+            ch_dummy_file,
+            PREPARE_GENOME.out.gtf,
+            false,
+            params.salmon_quant_libtype ?: ''
+        )
+        ch_salmon_multiqc = QUANTIFY_SALMON.out.results
+        ch_versions = ch_versions.mix(QUANTIFY_SALMON.out.versions)
+
+        if (!params.skip_qc & !params.skip_deseq2_qc) {
+            DESEQ2_QC_SALMON (
+                QUANTIFY_SALMON.out.counts_gene_length_scaled,
+                ch_pca_header_multiqc,
+                ch_clustering_header_multiqc
+            )
+            ch_pseudoaligner_pca_multiqc        = DESEQ2_QC_SALMON.out.pca_multiqc
+            ch_pseudoaligner_clustering_multiqc = DESEQ2_QC_SALMON.out.dists_multiqc
+            ch_versions = ch_versions.mix(DESEQ2_QC_SALMON.out.versions)
+        }
+    }
+
+    //
+    // MODULE: Pipeline reporting
+    //
+    CUSTOM_DUMPSOFTWAREVERSIONS (
+        ch_versions.unique().collectFile(name: 'collated_versions.yml')
+    )
+
+    //
+    // MODULE: MultiQC
+    //
+    if (!params.skip_multiqc) {
+        workflow_summary    = WorkflowRnaseq.paramsSummaryMultiqc(workflow, summary_params)
+        ch_workflow_summary = Channel.value(workflow_summary)
+
+        methods_description    = WorkflowRnaseq.methodsDescriptionText(workflow, ch_multiqc_custom_methods_description)
+        ch_methods_description = Channel.value(methods_description)
+
+        MULTIQC (
+            ch_multiqc_config,
+            ch_multiqc_custom_config.collect().ifEmpty([]),
+            CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect(),
+            ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'),
+            ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'),
+            ch_multiqc_logo.collect().ifEmpty([]),
+            ch_fail_trimming_multiqc.collectFile(name: 'fail_trimmed_samples_mqc.tsv').ifEmpty([]),
+            ch_fail_mapping_multiqc.collectFile(name: 'fail_mapped_samples_mqc.tsv').ifEmpty([]),
+            ch_fail_strand_multiqc.collectFile(name: 'fail_strand_check_mqc.tsv').ifEmpty([]),
+            ch_fastqc_raw_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_fastqc_trim_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_trim_log_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_sortmerna_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_star_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_hisat2_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_rsem_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_salmon_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_samtools_stats.collect{it[1]}.ifEmpty([]),
+            ch_samtools_flagstat.collect{it[1]}.ifEmpty([]),
+            ch_samtools_idxstats.collect{it[1]}.ifEmpty([]),
+            ch_markduplicates_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_featurecounts_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_aligner_pca_multiqc.collect().ifEmpty([]),
+            ch_aligner_clustering_multiqc.collect().ifEmpty([]),
+            ch_pseudoaligner_pca_multiqc.collect().ifEmpty([]),
+            ch_pseudoaligner_clustering_multiqc.collect().ifEmpty([]),
+            ch_preseq_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_qualimap_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_dupradar_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_bamstat_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_inferexperiment_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_innerdistance_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_junctionannotation_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_junctionsaturation_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_readdistribution_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_readduplication_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_tin_multiqc.collect{it[1]}.ifEmpty([])
+        )
+        multiqc_report = MULTIQC.out.report.toList()
     }
 }
