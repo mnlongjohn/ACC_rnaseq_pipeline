@@ -42,10 +42,10 @@ ch_dummy_file = file("$projectDir/assets/dummy_file.txt", checkIfExists: true)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-// ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-// ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
-// ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
+ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
+ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
+ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
+ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
 
 // Header files for MultiQC
 ch_pca_header_multiqc        = file("$projectDir/assets/multiqc/deseq2_pca_header.txt", checkIfExists: true)
@@ -65,8 +65,8 @@ include { BEDTOOLS_GENOMECOV                 } from '../modules/local/bedtools_g
 include { DESEQ2_QC as DESEQ2_QC_STAR_SALMON } from '../modules/local/deseq2_qc/main'
 include { DESEQ2_QC as DESEQ2_QC_SALMON      } from '../modules/local/deseq2_qc/main'
 // include { DUPRADAR                           } from '../modules/local/dupradar'
-// include { MULTIQC                            } from '../modules/local/multiqc'
-// include { MULTIQC_CUSTOM_BIOTYPE             } from '../modules/local/multiqc_custom_biotype'
+include { MULTIQC                            } from '../modules/local/multiqc/main'
+include { MULTIQC_CUSTOM_BIOTYPE             } from '../modules/local/multiqc_custom_biotype/main'
 
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
@@ -88,7 +88,7 @@ include { QUANTIFY_SALMON as QUANTIFY_SALMON      } from '../subworkflows/local/
 //
 include { CAT_FASTQ                   } from '../modules/nf-core/cat/fastq/main'
 // include { SAMTOOLS_SORT               } from '../modules/nf-core/samtools/sort/main'
-// include { SUBREAD_FEATURECOUNTS       } from '../modules/nf-core/subread/featurecounts/main'
+include { SUBREAD_FEATURECOUNTS       } from '../modules/nf-core/subread/featurecounts/main'
 // include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 //
@@ -395,38 +395,38 @@ workflow RNASEQ {
     //     ch_versions = ch_versions.mix(STRINGTIE_STRINGTIE.out.versions.first())
     // }
 
-    // //
-    // // MODULE: Feature biotype QC using featureCounts
-    // //
-    // ch_featurecounts_multiqc = Channel.empty()
-    // if (!params.skip_alignment && !params.skip_qc && !params.skip_biotype_qc && biotype) {
+    //
+    // MODULE: Feature biotype QC using featureCounts
+    //
+    ch_featurecounts_multiqc = Channel.empty()
+    if (!params.skip_alignment && !params.skip_qc && !params.skip_biotype_qc && biotype) {
 
-    //     PREPARE_GENOME
-    //         .out
-    //         .gtf
-    //         .map { WorkflowRnaseq.biotypeInGtf(it, biotype, log) }
-    //         .set { biotype_in_gtf }
+        PREPARE_GENOME
+            .out
+            .gtf
+            .map { WorkflowRnaseq.biotypeInGtf(it, biotype, log) }
+            .set { biotype_in_gtf }
 
-    //     // Prevent any samples from running if GTF file doesn't have a valid biotype
-    //     ch_genome_bam
-    //         .combine(PREPARE_GENOME.out.gtf)
-    //         .combine(biotype_in_gtf)
-    //         .filter { it[-1] }
-    //         .map { it[0..<it.size()-1] }
-    //         .set { ch_featurecounts }
+        // Prevent any samples from running if GTF file doesn't have a valid biotype
+        ch_genome_bam
+            .combine(PREPARE_GENOME.out.gtf)
+            .combine(biotype_in_gtf)
+            .filter { it[-1] }
+            .map { it[0..<it.size()-1] }
+            .set { ch_featurecounts }
 
-    //     SUBREAD_FEATURECOUNTS (
-    //         ch_featurecounts
-    //     )
-    //     ch_versions = ch_versions.mix(SUBREAD_FEATURECOUNTS.out.versions.first())
+        SUBREAD_FEATURECOUNTS (
+            ch_featurecounts
+        )
+        ch_versions = ch_versions.mix(SUBREAD_FEATURECOUNTS.out.versions.first())
 
-    //     MULTIQC_CUSTOM_BIOTYPE (
-    //         SUBREAD_FEATURECOUNTS.out.counts,
-    //         ch_biotypes_header_multiqc
-    //     )
-    //     ch_featurecounts_multiqc = MULTIQC_CUSTOM_BIOTYPE.out.tsv
-    //     ch_versions = ch_versions.mix(MULTIQC_CUSTOM_BIOTYPE.out.versions.first())
-    // }
+        MULTIQC_CUSTOM_BIOTYPE (
+            SUBREAD_FEATURECOUNTS.out.counts,
+            ch_biotypes_header_multiqc
+        )
+        ch_featurecounts_multiqc = MULTIQC_CUSTOM_BIOTYPE.out.tsv
+        ch_versions = ch_versions.mix(MULTIQC_CUSTOM_BIOTYPE.out.versions.first())
+    }
 
     //
     // MODULE: Genome-wide coverage with BEDTools
