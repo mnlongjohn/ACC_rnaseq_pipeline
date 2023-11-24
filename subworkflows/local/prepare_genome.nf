@@ -142,7 +142,7 @@ workflow PREPARE_GENOME {
                 ch_star_index = UNTAR_STAR_INDEX ( [ [:], star_index ] ).untar.map { it[1] }
                 ch_versions   = ch_versions.mix(UNTAR_STAR_INDEX.out.versions)
             } else {
-                ch_star_index = Channel.value(file(star_index))
+                ch_star_index = Channel.value( [ [:], file(star_index) ] )
             }
         } else {
             ch_star_index = STAR_GENOMEGENERATE ( ch_fasta.map { [ [:], it ] }, ch_gtf.map { [ [:], it ] } ).index
