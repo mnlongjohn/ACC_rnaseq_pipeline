@@ -3,7 +3,9 @@
 //
 
 import nextflow.Nextflow
+import java.util.zip.ZipFile
 import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
 import groovy.text.SimpleTemplateEngine
 
 class WorkflowRnaseq {
@@ -11,10 +13,7 @@ class WorkflowRnaseq {
     //
     // Check and validate parameters
     //
-    public static void initialise(params, log, valid_params) {
-        genomeExistsError(params, log)
-
-
+    public static void initialise(workflow, params, log, valid_params) {
         if (!params.fasta) {
             Nextflow.error("Genome fasta file not specified with e.g. '--fasta genome.fa' or via a detectable config file.")
         }
@@ -27,9 +26,9 @@ class WorkflowRnaseq {
             if (params.gff) {
                 gtfGffWarn(log)
             }
-            if (params.genome == 'GRCh38' && params.gtf.contains('Homo_sapiens/NCBI/GRCh38/Annotation/Genes/genes.gtf')) {
-                ncbiGenomeWarn(log)
-            }
+            // if (params.genome == 'GRCh38' && params.gtf.contains('Homo_sapiens/NCBI/GRCh38/Annotation/Genes/genes.gtf')) {
+            //     ncbiGenomeWarn(log)
+            // }
             if (params.gtf.contains('/UCSC/') && params.gtf.contains('Annotation/Genes/genes.gtf')) {
                 ucscGenomeWarn(log)
             }
@@ -74,10 +73,18 @@ class WorkflowRnaseq {
             }
         }
 
-        // Check which RSeQC modules we are running
-        def rseqc_modules = params.rseqc_modules ? params.rseqc_modules.split(',').collect{ it.trim().toLowerCase() } : []
-        if ((valid_params['rseqc_modules'] + rseqc_modules).unique().size() != valid_params['rseqc_modules'].size()) {
-            Nextflow.error("Invalid option: ${params.rseqc_modules}. Valid options for '--rseqc_modules': ${valid_params['rseqc_modules'].join(', ')}")
+        // // Check which RSeQC modules we are running
+        // def rseqc_modules = params.rseqc_modules ? params.rseqc_modules.split(',').collect{ it.trim().toLowerCase() } : []
+        // if ((valid_params['rseqc_modules'] + rseqc_modules).unique().size() != valid_params['rseqc_modules'].size()) {
+        //     Nextflow.error("Invalid option: ${params.rseqc_modules}. Valid options for '--rseqc_modules': ${valid_params['rseqc_modules'].join(', ')}")
+        // }
+
+        // initialise the custom acc json file
+        def output_path = "${workflow.launchDir}/work/ACC_Guidelines"
+        def output_dir = new File(output_path)
+        // Check to insure that the dir exist before writing
+        if (!output_dir.exists()) {
+            output_dir.mkdirs()
         }
     }
 
@@ -161,6 +168,62 @@ class WorkflowRnaseq {
     }
 
     //
+    // Function that parses fastqc's data output file to get the total number of reads
+    //
+    public static ArrayList getTotalSequencesFastqc(workflow, meta, zip_file) {
+        def output_path = "${workflow.launchDir}/work/ACC_Guidelines"
+        def output_file = new File("${output_path}/${meta.id}_fastqc_reads.json")
+        
+        // get total reads from zipped folder
+        def total_reads = 0
+        def zipFile = new ZipFile(zip_file[0].toString())
+        zipFile.entries().each { entry ->
+            if (!entry.isDirectory() && entry.name.contains('fastqc_data.txt')) {
+                def inputStream = zipFile.getInputStream(entry) 
+                def reader = new BufferedReader(new InputStreamReader(inputStream))
+                reader.eachLine { line ->
+                    def total_reads_matcher = line =~ /Total Sequences\s([\d\.]+)/
+                    if (total_reads_matcher) total_reads = total_reads_matcher[0][1].toInteger()
+                }
+            }
+        }
+
+        // print to json
+        def data = [id: meta.id, total_reads: total_reads]
+        output_file.withWriter { writer ->
+            writer.write(JsonOutput.toJson(data))
+        }
+        // output_file.write(JsonOutput.toJson(data))
+        def path_to_json = output_file.toPath()
+
+        return [ path_to_json ]
+    }
+
+    //
+    // Function that parses picard's markduplicate metrics output file to get percent duplication
+    //
+    public static ArrayList getPicardMarkDuplicatesRate(workflow, meta, log_file) {
+        def output_path = "${workflow.launchDir}/work/ACC_Guidelines"
+        def output_file = new File("${output_path}/${meta.id}_picard_duplicate.json")
+
+        def percent_duplication = 0
+        def line = log_file.readLines()[7]
+        def metrics_list = line.split('\t')
+
+        // if the metric exists print to json
+        if (metrics_list) percent_duplication = metrics_list[8].toFloat() * 100
+        def data = [id: meta.id, percent_duplication: percent_duplication]
+        // output_file.write(JsonOutput.toJson(data))
+        output_file.withWriter { writer ->
+            writer.write(JsonOutput.toJson(data))
+        }
+
+        def path_to_json = output_file.toPath()
+
+        return [ path_to_json ]
+    }
+
+    //
     // Function that parses and returns the alignment rate from the STAR log output
     //
     public static ArrayList getStarPercentMapped(params, align_log) {
@@ -206,6 +269,76 @@ class WorkflowRnaseq {
             strandedness = 'reverse'
         }
         return [ strandedness, sense, antisense, undetermined ]
+    }
+
+    //
+    // Function merges the ACC json files together
+    //
+    public static ArrayList formatAccJsonFiles(workflow, file_array) {
+        def output_path = "${workflow.launchDir}/work/ACC_Guidelines"
+        def output_file = new File("${output_path}/ACC_RNASEQ_Guidelines_mqc.json")
+
+        // read all the files and parse the json
+        def jsonData = []
+
+        file_array.each { file ->
+            def data = new JsonSlurper().parseText(file.text)
+            jsonData << data
+        }
+
+        // merge the data based on matching "id"
+        def result = [:].withDefault { [] }
+        jsonData.each { item ->
+            result[item.id] << item
+        }
+
+        def mergedData = [:].withDefault { [] }
+        result.each { id, items ->
+            def mergedItem = [:]
+            items.each { item ->
+                mergedItem.putAll(item)
+            }
+            mergedData[id] = [total_reads: mergedItem.total_reads / 1000000, percent_duplication: mergedItem.percent_duplication]
+        }
+
+        // format table with data
+        def outputJson = [
+            id: "acc_rnaseq_guidelines",
+            section_name: "ACC-MoH RNASEQ Metrics",
+            description: "This table is a test to show if the samples run meet the ACC-MoH metrics of >80 million reads and <50% duplication.",
+            plot_type: "table",
+            pconfig: [
+                id: "acc_rnaseq_guidelines_table",
+                title: "ACC RNASEQ Guidelines Table",
+            ],
+            headers: [
+                total_reads: [
+                    title: "Total Reads",
+                    description: "Total number of reads sequenced after filtering (millions)",
+                    min: 0,
+                    suffix: "M",
+                    format: "{:,.0f}"
+                ],
+                percent_duplication: [
+                    title: "Percent Duplication",
+                    description: "Percentage of aligned reads that are duplicates",
+                    max: 100,
+                    min: 0,
+                    suffix: "%",
+                    format: "{:,.2f}"
+                ]
+            ],
+            data: mergedData
+        ]
+
+        // write the json plot out
+        output_file.withWriter { writer ->
+            writer.write(JsonOutput.toJson(outputJson))
+        }
+
+        def path_to_json = output_file.toPath()
+
+        return [ path_to_json ]
     }
 
     //
