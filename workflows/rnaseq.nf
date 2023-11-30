@@ -13,8 +13,8 @@ def valid_params = [
 
 def summary_params = NfcoreSchema.paramsSummaryMap(workflow, params)
 
-// // Validate input parameters
-// WorkflowRnaseq.initialise(params, log, valid_params)
+// Validate input parameters
+WorkflowRnaseq.initialise(workflow, params, log, valid_params)
 
 // Check input path parameters to see if they exist
 checkPathParamList = [
@@ -241,6 +241,10 @@ workflow RNASEQ {
         ch_trim_log_multiqc    = FASTQ_FASTQC_UMITOOLS_FASTP.out.trim_json
         ch_trim_read_count     = FASTQ_FASTQC_UMITOOLS_FASTP.out.trim_read_count
         ch_versions = ch_versions.mix(FASTQ_FASTQC_UMITOOLS_FASTP.out.versions)
+
+        FASTQ_FASTQC_UMITOOLS_FASTP.out.fastqc_trim_zip
+            .map { meta, zip_file -> [ meta ] + WorkflowRnaseq.getTotalSequencesFastqc(workflow, meta, zip_file) }
+            .set { ch_acc_reads_json }
     }
 
     //
@@ -466,6 +470,10 @@ workflow RNASEQ {
             ch_genome_bam_index = BAM_MARKDUPLICATES_PICARD.out.csi
         }
         ch_versions = ch_versions.mix(BAM_MARKDUPLICATES_PICARD.out.versions)
+
+        BAM_MARKDUPLICATES_PICARD.out.metrics
+            .map { meta, log_file -> [ meta ] + WorkflowRnaseq.getPicardMarkDuplicatesRate(workflow, meta, log_file) }
+            .set { ch_acc_duplicates_json }
     }
 
     // //
@@ -657,6 +665,13 @@ workflow RNASEQ {
         workflow_summary    = WorkflowRnaseq.paramsSummaryMultiqc(workflow, summary_params)
         ch_workflow_summary = Channel.value(workflow_summary)
 
+        ch_acc_reads_json
+            .mix(ch_acc_duplicates_json)
+            .map { meta, json_file -> json_file }
+            .collect()
+            .map { files -> WorkflowRnaseq.formatAccJsonFiles(workflow, files) }
+            .set { ch_acc_metrics }
+
         methods_description    = WorkflowRnaseq.methodsDescriptionText(workflow, ch_multiqc_custom_methods_description)
         ch_methods_description = Channel.value(methods_description)
 
@@ -697,7 +712,8 @@ workflow RNASEQ {
             ch_junctionsaturation_multiqc.collect{it[1]}.ifEmpty([]),
             ch_readdistribution_multiqc.collect{it[1]}.ifEmpty([]),
             ch_readduplication_multiqc.collect{it[1]}.ifEmpty([]),
-            ch_tin_multiqc.collect{it[1]}.ifEmpty([])
+            ch_tin_multiqc.collect{it[1]}.ifEmpty([]),
+            ch_acc_metrics.ifEmpty([])
         )
         multiqc_report = MULTIQC.out.report.toList()
     }
